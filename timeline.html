@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>イベントタイムライン</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1e1e1e;
+    color: #e0e0e0;
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: #ffffff;
+    margin-bottom: 8px;
+  }
+
+  .reload-btn {
+    display: block;
+    margin: 0 auto 28px;
+    background: none;
+    border: 1px solid #444;
+    color: #aaa;
+    font-size: 12px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: all 0.2s;
+  }
+  .reload-btn:hover { border-color: #888; color: #fff; }
+
+  .loading {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    padding: 48px 0;
+  }
+
+  .error-msg {
+    text-align: center;
+    color: #e05555;
+    font-size: 13px;
+    padding: 24px;
+    background: #2a1a1a;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .config-panel {
+    max-width: 640px;
+    margin: 0 auto 32px;
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 20px 24px;
+  }
+  .config-panel label {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 6px;
+  }
+  .config-panel input {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #e0e0e0;
+    font-size: 13px;
+    padding: 8px 12px;
+    font-family: monospace;
+    margin-bottom: 12px;
+    outline: none;
+  }
+  .config-panel input:focus { border-color: #5b82c0; }
+  .config-row { display: flex; gap: 12px; }
+  .config-row input { flex: 1; margin-bottom: 0; }
+  .apply-btn {
+    margin-top: 14px;
+    width: 100%;
+    background: #4a6fa5;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 13px;
+    padding: 9px;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: background 0.2s;
+  }
+  .apply-btn:hover { background: #5b82c0; }
+
+  .timeline-wrapper { width: 100%; overflow-x: auto; }
+  .timeline-container { min-width: 900px; position: relative; }
+
+  .time-header {
+    display: flex;
+    margin-left: 110px;
+    border-bottom: 1px solid #3a3a3a;
+  }
+  .time-cell {
+    flex: 1;
+    font-size: 11px;
+    color: #666;
+    padding: 0 0 8px 6px;
+    border-left: 1px solid #2a2a2a;
+  }
+
+  .swimlane {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid #282828;
+    min-height: 52px;
+  }
+  .swimlane:last-child { border-bottom: none; }
+
+  .lane-label {
+    width: 110px;
+    min-width: 110px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #bbb;
+    padding: 10px 14px 10px 0;
+    border-right: 1px solid #333;
+  }
+
+  .lane-body {
+    flex: 1;
+    position: relative;
+    padding: 10px 0;
+  }
+
+  .grid-line {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: #282828;
+  }
+
+  .task-bar {
+    position: absolute;
+    height: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: default;
+    transition: filter 0.15s;
+  }
+  .task-bar:hover { filter: brightness(1.25); }
+
+  .lane-color-0 { background: #4a6fa5; border: 1px solid #5b82c0; }
+  .lane-color-1 { background: #4a7a5a; border: 1px solid #5b9b6b; }
+  .lane-color-2 { background: #7a5a3a; border: 1px solid #9b7a5a; }
+  .lane-color-3 { background: #6a4a7a; border: 1px solid #8b6a9b; }
+  .lane-color-4 { background: #7a4a4a; border: 1px solid #9b6a6a; }
+  .lane-color-5 { background: #4a6a7a; border: 1px solid #5a8a9b; }
+  .lane-color-6 { background: #6a7a4a; border: 1px solid #8a9b5a; }
+  .lane-color-7 { background: #7a6a4a; border: 1px solid #9b8a5a; }
+
+  .now-line {
+    position: absolute;
+    top: -10px; bottom: -10px;
+    width: 2px;
+    background: #e05555;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .tooltip {
+    display: none;
+    position: fixed;
+    background: #2e2e2e;
+    border: 1px solid #4a4a4a;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #e0e0e0;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    line-height: 1.8;
+  }
+  .tooltip strong { display: block; font-size: 13px; color: #fff; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<h1 id="page-title">イベントタイムライン</h1>
+<button class="reload-btn" onclick="loadData()">↻ データを再読み込み</button>
+
+<div class="config-panel">
+  <label>📊 Google スプレッドシート CSV 公開URL</label>
+  <input type="text" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/xxxx/pub?output=csv" />
+  <label style="margin-top:4px;">表示時間範囲</label>
+  <div class="config-row">
+    <input type="text" id="start-hour" placeholder="開始時刻（例: 07:00）" value="07:00" />
+    <input type="text" id="end-hour"   placeholder="終了時刻（例: 17:00）" value="17:00" />
+  </div>
+  <label style="margin-top:12px;">イベント名（任意）</label>
+  <input type="text" id="event-title" placeholder="例: 2026年4月5日 イベント" />
+  <button class="apply-btn" onclick="loadData()">タイムラインを表示</button>
+</div>
+
+<div id="output"><p class="loading">URLを入力して「タイムラインを表示」を押してください</p></div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+  return lines.slice(1).map(line => {
+    const cols = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = cols[i] || '');
+    return obj;
+  });
+}
+
+function toMin(timeStr, baseHour) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return (h - baseHour) * 60 + (m || 0);
+}
+function pct(min, total) {
+  return (Math.max(0, min) / total * 100).toFixed(4) + '%';
+}
+
+async function loadData() {
+  const url    = document.getElementById('sheet-url').value.trim();
+  const startT = document.getElementById('start-hour').value.trim() || '07:00';
+  const endT   = document.getElementById('end-hour').value.trim()   || '17:00';
+  const title  = document.getElementById('event-title').value.trim();
+  const output = document.getElementById('output');
+
+  const START_HOUR = parseInt(startT.split(':')[0]);
+  const END_HOUR   = parseInt(endT.split(':')[0]);
+  const TOTAL_MIN  = (END_HOUR - START_HOUR) * 60;
+
+  if (title) document.getElementById('page-title').textContent = 'イベントタイムライン　' + title;
+
+  if (!url) {
+    output.innerHTML = '<p class="loading">URLを入力してください</p>';
+    return;
+  }
+
+  output.innerHTML = '<p class="loading">読み込み中...</p>';
+
+  let rows;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('取得失敗: ' + res.status);
+    const text = await res.text();
+    rows = parseCSV(text);
+  } catch(e) {
+    output.innerHTML = `<div class="error-msg">
+      ❌ データの取得に失敗しました。<br>
+      スプレッドシートが「ウェブに公開」されているか確認してください。<br>
+      <small>${e.message}</small>
+    </div>`;
+    return;
+  }
+
+  // レーンごとにグループ化
+  const laneMap = {};
+  const laneOrder = [];
+  rows.forEach(row => {
+    const lane = row['lane'] || row['Lane'] || row['レーン'] || '未分類';
+    if (!laneMap[lane]) { laneMap[lane] = []; laneOrder.push(lane); }
+    laneMap[lane].push(row);
+  });
+
+  const hours = [];
+  for (let h = START_HOUR; h <= END_HOUR; h++) hours.push(h);
+
+  let html = `<div class="timeline-wrapper"><div class="timeline-container">`;
+
+  // 時間軸ヘッダー
+  html += `<div class="time-header">`;
+  hours.forEach(h => {
+    html += `<div class="time-cell">${String(h).padStart(2,'0')}:00</div>`;
+  });
+  html += `</div>`;
+
+  // スイムレーン
+  laneOrder.forEach((laneName, laneIdx) => {
+    const colorClass = `lane-color-${laneIdx % 8}`;
+    html += `<div class="swimlane">
+      <div class="lane-label">${laneName}</div>
+      <div class="lane-body">`;
+
+    // グリッド線
+    hours.forEach(h => {
+      const left = pct(toMin(`${h}:00`, START_HOUR), TOTAL_MIN);
+      html += `<div class="grid-line" style="left:${left}"></div>`;
+    });
+
+    // 現在時刻ライン
+    const now = new Date();
+    const nowMin = toMin(`${now.getHours()}:${now.getMinutes()}`, START_HOUR);
+    if (nowMin >= 0 && nowMin <= TOTAL_MIN) {
+      html += `<div class="now-line" style="left:${pct(nowMin, TOTAL_MIN)}"></div>`;
+    }
+
+    // タスクバー
+    laneMap[laneName].forEach(task => {
+      const name  = task['name']  || task['Name']  || task['タスク名'] || '';
+      const start = task['start'] || task['Start'] || task['開始']    || '';
+      const end   = task['end']   || task['End']   || task['終了']    || '';
+      if (!start || !end) return;
+      const startMin = toMin(start, START_HOUR);
+      const endMin   = toMin(end,   START_HOUR);
+      const width = Math.max(0, endMin - startMin);
+      html += `<div class="task-bar ${colorClass}"
+        style="left:${pct(startMin,TOTAL_MIN)};width:${pct(width,TOTAL_MIN)}"
+        data-name="${name}" data-start="${start}" data-end="${end}">${name}</div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  html += `</div></div>`;
+  output.innerHTML = html;
+
+  // ツールチップ
+  const tooltip = document.getElementById('tooltip');
+  document.querySelectorAll('.task-bar').forEach(bar => {
+    bar.addEventListener('mouseenter', () => {
+      tooltip.innerHTML = `<strong>${bar.dataset.name}</strong>${bar.dataset.start} ～ ${bar.dataset.end}`;
+      tooltip.style.display = 'block';
+    });
+    bar.addEventListener('mousemove', e => {
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top  = (e.clientY - 10) + 'px';
+    });
+    bar.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+  });
+}
+</script>
+</body>
+</html>
