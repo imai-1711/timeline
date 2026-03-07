@@ -59,50 +59,6 @@
     margin: 0 auto;
   }
 
-  .config-panel {
-    max-width: 640px;
-    margin: 0 auto 32px;
-    background: #252525;
-    border: 1px solid #333;
-    border-radius: 10px;
-    padding: 20px 24px;
-  }
-  .config-panel label {
-    display: block;
-    font-size: 12px;
-    color: #888;
-    margin-bottom: 6px;
-  }
-  .config-panel input {
-    width: 100%;
-    background: #1a1a1a;
-    border: 1px solid #3a3a3a;
-    border-radius: 6px;
-    color: #e0e0e0;
-    font-size: 13px;
-    padding: 8px 12px;
-    font-family: monospace;
-    margin-bottom: 12px;
-    outline: none;
-  }
-  .config-panel input:focus { border-color: #5b82c0; }
-  .config-row { display: flex; gap: 12px; }
-  .config-row input { flex: 1; margin-bottom: 0; }
-  .apply-btn {
-    margin-top: 14px;
-    width: 100%;
-    background: #4a6fa5;
-    border: none;
-    border-radius: 6px;
-    color: #fff;
-    font-size: 13px;
-    padding: 9px;
-    cursor: pointer;
-    font-family: 'Noto Sans JP', sans-serif;
-    transition: background 0.2s;
-  }
-  .apply-btn:hover { background: #5b82c0; }
-
   .timeline-wrapper { width: 100%; overflow-x: auto; }
   .timeline-container { min-width: 900px; position: relative; }
 
@@ -211,23 +167,23 @@
 <h1 id="page-title">イベントタイムライン</h1>
 <button class="reload-btn" onclick="loadData()">↻ データを再読み込み</button>
 
-<div class="config-panel">
-  <label>📊 Google スプレッドシート CSV 公開URL</label>
-  <input type="text" id="sheet-url" placeholder="https://docs.google.com/spreadsheets/d/xxxx/pub?output=csv" />
-  <label style="margin-top:4px;">表示時間範囲</label>
-  <div class="config-row">
-    <input type="text" id="start-hour" placeholder="開始時刻（例: 07:00）" value="07:00" />
-    <input type="text" id="end-hour"   placeholder="終了時刻（例: 17:00）" value="17:00" />
-  </div>
-  <label style="margin-top:12px;">イベント名（任意）</label>
-  <input type="text" id="event-title" placeholder="例: 2026年4月5日 イベント" />
-  <button class="apply-btn" onclick="loadData()">タイムラインを表示</button>
-</div>
-
-<div id="output"><p class="loading">URLを入力して「タイムラインを表示」を押してください</p></div>
+<div id="output"><p class="loading">読み込み中...</p></div>
 <div class="tooltip" id="tooltip"></div>
 
 <script>
+// ============================================================
+// ▼▼▼ 設定欄：ここだけ変更してください ▼▼▼
+// ============================================================
+const CONFIG = {
+  sheetUrl:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vS0E6Uq4kdjUvwLOIh-ZO8c4I-tnY4KbQi_Kwq79Ig36wh5Slu_IjjpE-o_sj6Pxi_tz_3CSw7ssyeD/pub?gid=0&single=true&output=csv',
+  startHour:  '07:00',   // タイムライン開始時刻
+  endHour:    '17:00',   // タイムライン終了時刻
+  eventTitle: '感謝祭-タイムライン（2026年4月5日）',  // ページタイトル
+};
+// ============================================================
+// ▲▲▲ 設定欄ここまで ▲▲▲
+// ============================================================
+
 function parseCSV(text) {
   const lines = text.trim().split('\n');
   const headers = lines[0].split(',').map(s => s.trim().replace(/^"|"$/g, ''));
@@ -248,20 +204,20 @@ function pct(min, total) {
 }
 
 async function loadData() {
-  const url    = document.getElementById('sheet-url').value.trim();
-  const startT = document.getElementById('start-hour').value.trim() || '07:00';
-  const endT   = document.getElementById('end-hour').value.trim()   || '17:00';
-  const title  = document.getElementById('event-title').value.trim();
+  const url    = CONFIG.sheetUrl;
+  const startT = CONFIG.startHour  || '07:00';
+  const endT   = CONFIG.endHour    || '17:00';
+  const title  = CONFIG.eventTitle || '';
   const output = document.getElementById('output');
 
   const START_HOUR = parseInt(startT.split(':')[0]);
   const END_HOUR   = parseInt(endT.split(':')[0]);
   const TOTAL_MIN  = (END_HOUR - START_HOUR) * 60;
 
-  if (title) document.getElementById('page-title').textContent = 'イベントタイムライン　' + title;
+  if (title) document.getElementById('page-title').textContent = title;
 
-  if (!url) {
-    output.innerHTML = '<p class="loading">URLを入力してください</p>';
+  if (!url || url.includes('ここに')) {
+    output.innerHTML = '<p class="loading">⚠️ HTMLファイル内のCONFIG.sheetUrlにスプレッドシートのURLを設定してください</p>';
     return;
   }
 
@@ -357,6 +313,8 @@ async function loadData() {
     bar.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
   });
 }
+// ページを開いたら自動でロード
+window.addEventListener('load', loadData);
 </script>
 </body>
 </html>
