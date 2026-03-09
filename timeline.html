@@ -62,36 +62,54 @@
   .timeline-wrapper { width: 100%; overflow-x: auto; }
   .timeline-container { min-width: 900px; position: relative; }
 
-  .time-header {
+  /* ヘッダーとレーン本体を同じ構造で揃える */
+  .timeline-row {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .row-label {
+    width: 110px;
+    min-width: 110px;
+    flex-shrink: 0;
+  }
+
+  .row-body {
+    flex: 1;
     position: relative;
-    margin-left: 110px;
-    height: 24px;
+  }
+
+  /* 時間軸ヘッダー */
+  .time-header .row-label {
+    border-right: 1px solid #333;
+  }
+
+  .time-header .row-body {
+    height: 28px;
     border-bottom: 1px solid #3a3a3a;
   }
+
   .time-cell {
     position: absolute;
     font-size: 11px;
     color: #666;
     padding-left: 4px;
+    padding-bottom: 4px;
     border-left: 1px solid #2a2a2a;
     top: 0;
-    height: 100%;
+    bottom: 0;
     display: flex;
     align-items: flex-end;
-    padding-bottom: 4px;
   }
 
+  /* スイムレーン */
   .swimlane {
-    display: flex;
-    align-items: stretch;
     border-bottom: 1px solid #282828;
     min-height: 52px;
   }
   .swimlane:last-child { border-bottom: none; }
 
   .lane-label {
-    width: 110px;
-    min-width: 110px;
     display: flex;
     align-items: center;
     font-size: 13px;
@@ -99,11 +117,10 @@
     color: #bbb;
     padding: 10px 14px 10px 0;
     border-right: 1px solid #333;
+    height: 100%;
   }
 
   .lane-body {
-    flex: 1;
-    position: relative;
     padding: 10px 0;
   }
 
@@ -175,14 +192,16 @@
 
 <div id="output"><p class="loading">読み込み中...</p></div>
 <div class="tooltip" id="tooltip"></div>
+
+<script>
 // ============================================================
 // ▼▼▼ 設定欄：ここだけ変更してください ▼▼▼
 // ============================================================
 const CONFIG = {
   workerUrl:  'https://notion-timeline.fcbb-showtime.workers.dev/',
-  startHour:  '07:00',   // タイムライン開始時刻
-  endHour:    '17:00',   // タイムライン終了時刻
-  eventTitle: '当日タイムライン（2026年4月5日）',  // ページタイトル
+  startHour:  '07:00',
+  endHour:    '17:00',
+  eventTitle: '当日タイムライン（2026年4月5日）',
 };
 // ============================================================
 // ▲▲▲ 設定欄ここまで ▲▲▲
@@ -244,20 +263,22 @@ async function loadData() {
 
   let html = `<div class="timeline-wrapper"><div class="timeline-container">`;
 
-  // 時間軸ヘッダー
-  html += `<div class="time-header">`;
+  // 時間軸ヘッダー（ラベル列と本体列を swimlane と同じ構造にして幅を揃える）
+  html += `<div class="timeline-row time-header">`;
+  html += `<div class="row-label"></div>`;
+  html += `<div class="row-body">`;
   hours.forEach(h => {
     const left = pct(toMin(`${h}:00`, START_HOUR), TOTAL_MIN);
     html += `<div class="time-cell" style="left:${left}">${String(h).padStart(2,'0')}:00</div>`;
   });
-  html += `</div>`;
+  html += `</div></div>`;
 
   // スイムレーン
   laneOrder.forEach((laneName, laneIdx) => {
     const colorClass = `lane-color-${laneIdx % 8}`;
-    html += `<div class="swimlane">
-      <div class="lane-label">${laneName}</div>
-      <div class="lane-body">`;
+    html += `<div class="timeline-row swimlane">`;
+    html += `<div class="row-label"><div class="lane-label">${laneName}</div></div>`;
+    html += `<div class="row-body lane-body">`;
 
     // グリッド線
     hours.forEach(h => {
@@ -306,6 +327,7 @@ async function loadData() {
     bar.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
   });
 }
+
 // ページを開いたら自動でロード
 window.addEventListener('load', loadData);
 </script>
