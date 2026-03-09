@@ -68,7 +68,7 @@
     border-bottom: 1px solid #3a3a3a;
   }
   .time-cell {
-    display: flex;
+    flex: 1;
     font-size: 11px;
     color: #666;
     padding: 0 0 8px 6px;
@@ -175,25 +175,14 @@
 // ▼▼▼ 設定欄：ここだけ変更してください ▼▼▼
 // ============================================================
 const CONFIG = {
-  sheetUrl:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vS0E6Uq4kdjUvwLOIh-ZO8c4I-tnY4KbQi_Kwq79Ig36wh5Slu_IjjpE-o_sj6Pxi_tz_3CSw7ssyeD/pub?gid=0&single=true&output=csv',
+  workerUrl:  'https://notion-timeline.fcbb-showtime.workers.dev/',
   startHour:  '07:00',   // タイムライン開始時刻
   endHour:    '17:00',   // タイムライン終了時刻
-  eventTitle: '感謝祭-タイムライン（2026年4月5日）',  // ページタイトル
+  eventTitle: 'イベントタイムライン（2026年4月5日）',  // ページタイトル
 };
 // ============================================================
 // ▲▲▲ 設定欄ここまで ▲▲▲
 // ============================================================
-
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',').map(s => s.trim().replace(/^"|"$/g, ''));
-  return lines.slice(1).map(line => {
-    const cols = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
-    const obj = {};
-    headers.forEach((h, i) => obj[h] = cols[i] || '');
-    return obj;
-  });
-}
 
 function toMin(timeStr, baseHour) {
   const [h, m] = timeStr.split(':').map(Number);
@@ -204,7 +193,7 @@ function pct(min, total) {
 }
 
 async function loadData() {
-  const url    = CONFIG.sheetUrl;
+  const url    = CONFIG.workerUrl;
   const startT = CONFIG.startHour  || '07:00';
   const endT   = CONFIG.endHour    || '17:00';
   const title  = CONFIG.eventTitle || '';
@@ -217,7 +206,7 @@ async function loadData() {
   if (title) document.getElementById('page-title').textContent = title;
 
   if (!url || url.includes('ここに')) {
-    output.innerHTML = '<p class="loading">⚠️ HTMLファイル内のCONFIG.sheetUrlにスプレッドシートのURLを設定してください</p>';
+    output.innerHTML = '<p class="loading">⚠️ HTMLファイル内のCONFIG.workerUrlにCloudflare WorkerのURLを設定してください</p>';
     return;
   }
 
@@ -227,12 +216,11 @@ async function loadData() {
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error('取得失敗: ' + res.status);
-    const text = await res.text();
-    rows = parseCSV(text);
+    rows = await res.json();
   } catch(e) {
     output.innerHTML = `<div class="error-msg">
       ❌ データの取得に失敗しました。<br>
-      スプレッドシートが「ウェブに公開」されているか確認してください。<br>
+      Cloudflare WorkerのURLとNotionの接続設定を確認してください。<br>
       <small>${e.message}</small>
     </div>`;
     return;
@@ -242,7 +230,7 @@ async function loadData() {
   const laneMap = {};
   const laneOrder = [];
   rows.forEach(row => {
-    const lane = row['lane'] || row['Lane'] || row['レーン'] || '未分類';
+    const lane = row['lane'] || '未分類';
     if (!laneMap[lane]) { laneMap[lane] = []; laneOrder.push(lane); }
     laneMap[lane].push(row);
   });
@@ -281,9 +269,9 @@ async function loadData() {
 
     // タスクバー
     laneMap[laneName].forEach(task => {
-      const name  = task['name']  || task['Name']  || task['タスク名'] || '';
-      const start = task['start'] || task['Start'] || task['開始']    || '';
-      const end   = task['end']   || task['End']   || task['終了']    || '';
+      const name  = task['name']  || '';
+      const start = task['start'] || '';
+      const end   = task['end']   || '';
       if (!start || !end) return;
       const startMin = toMin(start, START_HOUR);
       const endMin   = toMin(end,   START_HOUR);
