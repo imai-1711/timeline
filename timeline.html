@@ -247,7 +247,8 @@ async function loadData() {
   // 時間軸ヘッダー
   html += `<div class="time-header">`;
   hours.forEach(h => {
-    html += `<div class="time-cell">${String(h).padStart(2,'0')}:00</div>`;
+    const left = pct(toMin(`${h}:00`, START_HOUR), TOTAL_MIN);
+    html += `<div class="time-cell" style="left:${left}">${String(h).padStart(2,'0')}:00</div>`;
   });
   html += `</div>`;
 
