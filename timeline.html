@@ -63,16 +63,22 @@
   .timeline-container { min-width: 900px; position: relative; }
 
   .time-header {
-    display: flex;
+    position: relative;
     margin-left: 110px;
+    height: 24px;
     border-bottom: 1px solid #3a3a3a;
   }
   .time-cell {
-    flex: 1;
+    position: absolute;
     font-size: 11px;
     color: #666;
-    padding: 0 0 8px 6px;
+    padding-left: 4px;
     border-left: 1px solid #2a2a2a;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 4px;
   }
 
   .swimlane {
@@ -169,8 +175,6 @@
 
 <div id="output"><p class="loading">読み込み中...</p></div>
 <div class="tooltip" id="tooltip"></div>
-
-<script>
 // ============================================================
 // ▼▼▼ 設定欄：ここだけ変更してください ▼▼▼
 // ============================================================
@@ -178,7 +182,7 @@ const CONFIG = {
   workerUrl:  'https://notion-timeline.fcbb-showtime.workers.dev/',
   startHour:  '07:00',   // タイムライン開始時刻
   endHour:    '17:00',   // タイムライン終了時刻
-  eventTitle: 'イベントタイムライン（2026年4月5日）',  // ページタイトル
+  eventTitle: '当日タイムライン（2026年4月5日）',  // ページタイトル
 };
 // ============================================================
 // ▲▲▲ 設定欄ここまで ▲▲▲
